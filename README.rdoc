@@ -1,6 +1,7 @@
 = ayl-beanstalk
 
-Description goes here.
+This gem provides a reference implementation of a beanstalk Engine for the
+{ayl}[https://github.com/j0hnds/ayl] gem.
 
 == Contributing to ayl-beanstalk
  
