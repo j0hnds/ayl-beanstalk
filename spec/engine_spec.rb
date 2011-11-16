@@ -8,6 +8,7 @@ describe Ayl::Beanstalk::Engine do
   context "Standard API" do
 
     before(:each) do
+      Kernel.stub(:puts)
       @engine = Ayl::Beanstalk::Engine.new
       @engine.stub_chain(:logger, :info)
       @engine.stub_chain(:logger, :error)

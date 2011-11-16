@@ -8,6 +8,7 @@ describe Ayl::Beanstalk::Worker do
   context "Message Processing" do
 
     before(:each) do
+      Kernel.stub(:puts)
       @worker = Ayl::Beanstalk::Worker.new
       @worker.stub_chain(:logger, :info)
       @worker.stub_chain(:logger, :error)
