@@ -49,3 +49,6 @@ pkg
 
 # For RVM
 .rvmrc
+
+# For emacs
+.emacs_project
