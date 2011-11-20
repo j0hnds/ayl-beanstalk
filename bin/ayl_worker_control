@@ -1,8 +1,14 @@
 #!/usr/bin/env ruby
 require 'daemons'
+require 'ayl-beanstalk/command_line'
 
 sdir = File.dirname(File.absolute_path($0))
 sname = File.basename($0).gsub('_control', '')
 spath = File.join(sdir, sname)
 
-Daemons.run(spath, :log_dir => '/tmp', :log_output => true)
+options = Ayl::CommandLine.parse! Ayl::CommandLine.grab_app_arguments
+
+raise "Must specify the path to the PID file" if options[:pid_path].nil?
+raise "PID path does not exist" if !File.exists?(options[:pid_path])
+
+Daemons.run(spath, :log_dir => '/tmp', :log_output => true, :dir_mode => :normal, :dir => options[:pid_path])

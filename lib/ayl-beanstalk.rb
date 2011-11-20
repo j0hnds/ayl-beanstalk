@@ -1,4 +1,5 @@
 require 'ayl'
+require 'beanstalk-client'
 require 'ayl-beanstalk/pool'
 require 'ayl-beanstalk/engine'
 require 'ayl-beanstalk/worker'

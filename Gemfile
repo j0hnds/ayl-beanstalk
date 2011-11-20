@@ -4,6 +4,7 @@ source "http://rubygems.org"
 #   gem "activesupport", ">= 2.3.5"
 gem 'ayl', ">= 0.1.0"
 gem 'beanstalk-client', ">= 1.1.0"
+gem 'daemons', ">= 1.1.0"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.

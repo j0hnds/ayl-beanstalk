@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'optparse'
+require 'ayl-beanstalk/command_line'
 
 describe "ayl_worker script" do
 
@@ -17,7 +18,7 @@ describe "ayl_worker script" do
 
     it "should exit with a status code of 0 if help is invoked" do
       ARGV << '--help'
-      Object.any_instance.stub(:puts)
+      Ayl::CommandLine.stub(:puts)
       lambda { load(@ayl_script, true) }.should exit_with_code(0)
     end
 
