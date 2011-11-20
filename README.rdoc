@@ -3,6 +3,68 @@
 This gem provides a reference implementation of a beanstalk Engine for the
 {ayl}[https://github.com/j0hnds/ayl] gem.
 
+If you want to use this technology in a Rails 3.* application you can do the 
+following in your config/environments/*.rb files:
+
+    YourApp::Application.configure do
+
+    ...
+
+    config.after_initialize do
+      # Set up a delay for AYL so we make sure the object is
+      # saved before we pick it up off the queue. Defaults to 0
+      # Ayl::MessageOptions.default_delay = 2 
+
+      # Set up a priority fo AYL. The lower the priority number
+      # the higher the priority. The default is 512.
+      # Ayl::MessageOptions.default_priority = 1
+
+      # Set up a time to run for AYL. This is the number of seconds
+      # that a worker has to complete the job before the queuing engine
+      # re-inserts the message into the queue. Defaults to 120 seconds
+      # Ayl::MessageOptions.default_time_to_run = 120
+
+      # Set up the name of the queue to use in the queuing engine for
+      # messages. Typically, you will use the application version for
+      # the name of the queue so that you won't have problems with items
+      # left in the queue when the version of the software changes.
+      # The default is 'default'.
+      # Ayl::MessageOptions.default_queue_name = '1.2.3'
+
+      # Set up the logger for Ayl
+      Ayl::Logger.instance.logger = ::Rails.logger
+
+      # Set up the beanstalk engine for use
+      Ayl::Engine.add_engine(Ayl::Beanstalk::Engine.new('localhost', 8903)
+    end
+
+    end
+
+If beanstalkd is running at the time your application starts up, your async messages
+will be sent to beanstalkd. If beanstalkd is NOT running, your messages will be 
+invoked synchronously (without errors).
+
+Once you get your messages in beanstalkd, you will probably want them to get executed
+(or what would be the point?). This gem provides a couple of scripts to assist in 
+starting up a worker process to read messages off the beanstalkd queue and process them.
+
+* ayl_worker - This script runs in the foreground and processes messages off the beanstalkd queue.
+* ayl_worker_control - This script runs the ayl_worker script as a daemon to process messages in the background.
+
+For example, if you want to run the worker in the foreground you would invoke the following:
+
+    ayl_worker -a /var/www/application/current -r -e production -t default
+
+If you want to have the script run in the background:
+
+    ayl_worker_control start -- -a /var/www/application/current -r -e production -t default -p /tmp
+
+or to stop the background script:
+
+    ayl_worker_control stop -- -a /var/www/application/current -r -e production -t default -p /tmp
+
+The ayl_worker_control script can easily be invoked by an /etc/init.d script to allow your workers to start at server boot time.
+
 == Contributing to ayl-beanstalk
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
