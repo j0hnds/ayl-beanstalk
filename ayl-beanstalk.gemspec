@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "ayl-beanstalk"
-  s.version = "0.1.0"
+  s.version = "0.1.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["j0hnds@gmail.com"]
-  s.date = "2011-11-20"
+  s.date = "2011-11-26"
   s.description = "Ayl extension to provide beanstalk support."
   s.email = "j0hnds@gmail.com"
   s.executables = ["ayl_beanstalk", "ayl_worker", "ayl_worker_control"]
@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
     "README.rdoc",
     "Rakefile",
     "VERSION",
+    "ayl-beanstalk.gemspec",
     "bin/ayl_beanstalk",
     "bin/ayl_worker",
     "bin/ayl_worker_control",
