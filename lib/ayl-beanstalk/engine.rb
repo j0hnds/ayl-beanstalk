@@ -6,6 +6,8 @@ module Ayl
       include Ayl::Logging
       include Ayl::Beanstalk::Pool
 
+      attr_reader :host, :port
+
       def initialize(host='localhost', port=11300)
         logger.info "#{self.class.name}.initialize(#{host.inspect}, #{port})"
         @host = host

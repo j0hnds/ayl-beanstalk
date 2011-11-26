@@ -14,6 +14,11 @@ describe Ayl::Beanstalk::Engine do
       @engine.stub_chain(:logger, :error)
     end
 
+    it "should default to localhost and 11300 as the host port for the beanstalkd server" do
+      @engine.host.should == 'localhost'
+      @engine.port.should == 11300
+    end
+
     it "should respond true to the asynchronous? message" do
       @engine.asynchronous?.should be_true
     end
