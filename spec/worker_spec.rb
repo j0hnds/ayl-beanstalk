@@ -12,6 +12,7 @@ describe Ayl::Beanstalk::Worker do
       @worker = Ayl::Beanstalk::Worker.new
       @worker.stub_chain(:logger, :info)
       @worker.stub_chain(:logger, :error)
+      Ayl::MessageOptions.default_queue_name = 'default'
     end
     
     it "should wait for a message to be received from beanstalk and process it" do
