@@ -19,7 +19,8 @@ end
 
 require File.join(options[:app_path], options[:app_require])
 
-Ayl::MessageOptions.default_queue_name = options[:tube]
+# Don't set the default queue name if it has already been set else where
+Ayl::MessageOptions.default_queue_name = options[:tube] if Ayl::MessageOptions.default_queue_name == 'default'
 
 worker = Ayl::Engine.get_active_engine.worker
 worker.eval_binding = binding

@@ -13,7 +13,7 @@ module Ayl
       end
 
       def process_messages
-        logger.info "#{self.class.name} entering process_messages loop"
+        logger.info "#{self.class.name} entering process_messages loop watching: #{Ayl::MessageOptions.default_queue_name}"
         # trap('TERM') { puts "## Got the term signal"; @stop = true }
         # trap('INT') { puts "## Got the int signal"; @stop = true }
         # Set the queue that we will be watching
