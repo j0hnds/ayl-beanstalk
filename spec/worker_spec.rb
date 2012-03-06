@@ -15,12 +15,13 @@ describe Ayl::Beanstalk::Worker do
     end
     
     it "should wait for a message to be received from beanstalk and process it" do
+      Ayl::MessageOptions.default_queue_name = 'the_queue_name'
       mock_job = mock("Beanstalk::Job")
       mock_job.should_receive(:delete)
       mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "23.to_s(2)" })
 
       mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
+      mock_pool.should_receive(:watch).with("the_queue_name")
       # Returns nil on the second call.
       mock_pool.should_receive(:reserve).and_return(mock_job, nil)
       
@@ -92,7 +93,7 @@ describe Ayl::Beanstalk::Worker do
       mock_job = mock("Beanstalk::Job")
       mock_job.should_receive(:decay)
       mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "Dog" })
-      mock_job.should_receive(:age).and_return(10)
+      mock_job.should_receive(:age).exactly(2).times.and_return(10)
 
       mock_pool = mock("Beanstalk::Pool")
       mock_pool.should_receive(:watch).with("default")
@@ -111,7 +112,7 @@ describe Ayl::Beanstalk::Worker do
       mock_job = mock("Beanstalk::Job")
       mock_job.should_receive(:delete)
       mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "Dog" })
-      mock_job.should_receive(:age).and_return(65)
+      mock_job.should_receive(:age).exactly(2).times.and_return(65)
 
       mock_pool = mock("Beanstalk::Pool")
       mock_pool.should_receive(:watch).with("default")

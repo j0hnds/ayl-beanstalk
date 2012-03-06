@@ -30,9 +30,12 @@ module Ayl
             job.delete
           rescue Exception => ex
             logger.error "#{self.class.name} Exception in process_messages: #{ex}\n#{ex.backtrace.join("\n")}"
+            logger.info "Age of job: #{job.age}"
             if job.age > 60
+              logger.info "Deleting job"
               job.delete
             else
+              logger.info "Decaying job"
               job.decay
             end
           end
