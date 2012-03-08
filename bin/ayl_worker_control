@@ -11,4 +11,13 @@ options = Ayl::CommandLine.parse! Ayl::CommandLine.grab_app_arguments
 raise "Must specify the path to the PID file" if options[:pid_path].nil?
 raise "PID path does not exist" if !File.exists?(options[:pid_path])
 
-Daemons.run(spath, :log_dir => '/tmp', :log_output => true, :dir_mode => :normal, :dir => options[:pid_path])
+daemon_options = {
+  :log_dir => '/tmp', 
+  :log_output => true, 
+  :dir_mode => :normal, 
+  :dir => options[:pid_path]
+}
+
+daemon_options.merge!({ :app_name => options[:app_name] }) if options.has_key?(:app_name)
+
+Daemons.run(spath, daemon_options)

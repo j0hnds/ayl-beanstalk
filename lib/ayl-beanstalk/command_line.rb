@@ -53,6 +53,10 @@ module Ayl
             options[:pid_path] = pid_path
           end
 
+          opts.on '-n', '--name NAME', 'The name to use for the worker daemon (overrides script name)', do | name |
+            options[:app_name] = name
+          end
+
           opts.on '-h', '--help', 'Display the help message' do
             puts opts
             exit(0)
