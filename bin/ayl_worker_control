@@ -15,7 +15,8 @@ daemon_options = {
   :log_dir => '/tmp', 
   :log_output => true, 
   :dir_mode => :normal, 
-  :dir => options[:pid_path]
+  :dir => options[:pid_path],
+  :multiple => true
 }
 
 daemon_options.merge!({ :app_name => options[:app_name] }) if options.has_key?(:app_name)
