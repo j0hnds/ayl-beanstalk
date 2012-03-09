@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "ayl-beanstalk"
-  s.version = "0.1.2"
+  s.version = "0.1.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["j0hnds@gmail.com"]
-  s.date = "2012-03-06"
+  s.date = "2012-03-09"
   s.description = "Ayl extension to provide beanstalk support."
   s.email = "j0hnds@gmail.com"
   s.executables = ["ayl_beanstalk", "ayl_worker", "ayl_worker_control"]
@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
     "lib/ayl-beanstalk/engine.rb",
     "lib/ayl-beanstalk/pool.rb",
     "lib/ayl-beanstalk/worker.rb",
+    "spec/ayl_worker_control_spec.rb",
     "spec/ayl_worker_spec.rb",
     "spec/command_line_spec.rb",
     "spec/engine_spec.rb",
@@ -46,7 +47,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/j0hnds/ayl-beanstalk"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.10"
+  s.rubygems_version = "1.8.15"
   s.summary = "Ayl extension to provide beanstalk support."
 
   if s.respond_to? :specification_version then
