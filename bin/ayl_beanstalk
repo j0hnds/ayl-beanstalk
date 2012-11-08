@@ -8,7 +8,7 @@ require 'optparse'
 require 'beanstalk-client'
 
 SLEEP_COMMAND = {
-  :type => :rails,
+  :type => :ayl,
   :code => 'Kernel.sleep(20)' # This message will cause the worker to sleep for 20 seconds
 }
 
@@ -135,6 +135,7 @@ class BeanstalkCommander
   def put_ayl_job(job_body)
     raise "Must specify a job body to put" unless job_body
     puts "Putting (#{job_body}) on tube: #{@tube}"
+    pool.use(@tube)
     pool.put({:type => :ayl, :code => job_body}.to_yaml)
     puts "Job was put"
   end
