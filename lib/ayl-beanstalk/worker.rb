@@ -28,6 +28,12 @@ module Ayl
           rescue Ayl::UnrecoverableMessageException => ex
             logger.error "#{self.class.name} Unrecoverable exception in process_messages: #{ex}"
             job.delete
+          rescue SystemExit
+            # This exception is raised when 'Kernel.exit' is called. In this case
+            # we want to make sure the job is deleted, then we simply re-raise
+            # the exception and we go bye-bye.
+            job.delete
+            raise
           rescue Exception => ex
             logger.error "#{self.class.name} Exception in process_messages: #{ex}\n#{ex.backtrace.join("\n")}"
             logger.info "Age of job: #{job.age}"
