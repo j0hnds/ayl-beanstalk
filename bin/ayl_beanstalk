@@ -7,6 +7,8 @@ require 'date'
 require 'optparse'
 require 'beanstalk-client'
 
+DEFAULT_COMMAND = 'statistics'
+
 SLEEP_COMMAND = {
   :type => :ayl,
   :code => 'Kernel.sleep(20)' # This message will cause the worker to sleep for 20 seconds
@@ -270,11 +272,10 @@ begin
                                        options[:port], 
                                        options[:tube])
 
-  raise "Must specify a command to execute." if ARGV.empty?
-  command = ARGV.first
+  command = ARGV.shift || DEFAULT_COMMAND
   raise "Invalid command: #{command}" unless beanstalker.respond_to?(command)
 
-  arguments = ARGV[1..-1]
+  arguments = ARGV
   beanstalker.send(command, *arguments)
 rescue Exception => ex
   puts "Error: #{ex.message}"
