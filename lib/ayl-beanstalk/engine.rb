@@ -9,7 +9,7 @@ module Ayl
       attr_reader :host, :port
 
       def initialize(host='localhost', port=11300)
-        logger.info "#{self.class.name}.initialize(#{host.inspect}, #{port})"
+        logger.debug "#{self.class.name}.initialize(#{host.inspect}, #{port})"
         @host = host
         @port = port
       end
