@@ -134,6 +134,10 @@ class BeanstalkCommander
     puts "Job was put"
   end
 
+  def kill_worker
+    put_ayl_job 'Kernel.exit'
+  end
+
   def put_ayl_job(job_body)
     raise "Must specify a job body to put" unless job_body
     puts "Putting (#{job_body}) on tube: #{@tube}"
@@ -161,6 +165,16 @@ class BeanstalkCommander
     format_job(job)
     job.delete
     puts "Deleted job"
+  end
+
+  def eat_all_jobs
+    pool.watch(@tube)
+    while (!(job = pool.reserve(0)).nil?)
+      puts "Reserved job"
+      format_job(job)
+      job.delete
+      puts "Deleted job"
+    end
   end
 
   #
