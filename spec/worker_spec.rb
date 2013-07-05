@@ -12,6 +12,7 @@ describe Ayl::Beanstalk::Worker do
       @worker = Ayl::Beanstalk::Worker.new
       @worker.stub_chain(:logger, :info)
       @worker.stub_chain(:logger, :error)
+      @worker.stub_chain(:logger, :debug)
       Ayl::MessageOptions.default_queue_name = 'default'
     end
     
