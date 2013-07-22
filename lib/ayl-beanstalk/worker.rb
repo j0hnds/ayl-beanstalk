@@ -18,7 +18,15 @@ module Ayl
         pool.watch(Ayl::MessageOptions.default_queue_name)
         while true
           break if @stop
-          job = pool.reserve
+          job = nil
+          begin
+            job = pool.reserve
+          rescue Exception => ex
+            logger.error "#{self.class.name} Exception in process_messages: #{ex}\n#{ex.backtrace.join("\n")}"
+            Ayl::Mailer.instance.deliver_message("#{self.class.name} Exception in process_messages.", ex)
+            delete_job(job) unless job.nil?
+            next
+          end
           break if job.nil?
           msg = nil
           begin
@@ -40,6 +48,7 @@ module Ayl
             if msg.options.decay_failed_job
               handle_job_decay(job, ex)
             else
+              delete_job(job)
               Ayl::Mailer.instance.deliver_message("#{self.class.name} Exception in process_messages.", ex)
             end
           end
