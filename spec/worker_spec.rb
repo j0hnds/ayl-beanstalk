@@ -96,6 +96,7 @@ describe Ayl::Beanstalk::Worker do
       mock_job.should_not_receive(:decay)
       mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "Dog" })
       mock_job.should_not_receive(:age)
+      mock_job.should_receive(:delete)
 
       mock_pool = mock("Beanstalk::Pool")
       mock_pool.should_receive(:watch).with("default")
