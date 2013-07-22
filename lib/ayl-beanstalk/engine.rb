@@ -36,6 +36,7 @@ module Ayl
             pool.yput(message.to_hash, message.options.priority, message.options.delay, message.options.time_to_run)
           rescue Exception => ex
             logger.error "Error submitting message to beanstalk: #{ex}"
+            Ayl::Mailer.instance.deliver_message("Error submitting message to beanstalk", ex)
           end
         end
       end
