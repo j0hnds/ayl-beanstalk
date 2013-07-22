@@ -54,7 +54,7 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<ayl>, [">= 0.2.0"])
+      s.add_runtime_dependency(%q<ayl>, [">= 0.2.1"])
       s.add_runtime_dependency(%q<beanstalk-client>, [">= 1.1.0"])
       s.add_runtime_dependency(%q<daemons>, [">= 1.1.0"])
       s.add_development_dependency(%q<rspec>, [">= 2.3.0"])
@@ -63,7 +63,7 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<rcov>, [">= 0"])
       s.add_development_dependency(%q<pry>, [">= 0"])
     else
-      s.add_dependency(%q<ayl>, [">= 0.2.0"])
+      s.add_dependency(%q<ayl>, [">= 0.2.1"])
       s.add_dependency(%q<beanstalk-client>, [">= 1.1.0"])
       s.add_dependency(%q<daemons>, [">= 1.1.0"])
       s.add_dependency(%q<rspec>, [">= 2.3.0"])
@@ -73,7 +73,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<pry>, [">= 0"])
     end
   else
-    s.add_dependency(%q<ayl>, [">= 0.2.0"])
+    s.add_dependency(%q<ayl>, [">= 0.2.1"])
     s.add_dependency(%q<beanstalk-client>, [">= 1.1.0"])
     s.add_dependency(%q<daemons>, [">= 1.1.0"])
     s.add_dependency(%q<rspec>, [">= 2.3.0"])
