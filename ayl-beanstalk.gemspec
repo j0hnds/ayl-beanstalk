@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
     "lib/ayl-beanstalk/engine.rb",
     "lib/ayl-beanstalk/pool.rb",
     "lib/ayl-beanstalk/worker.rb",
+    "lib/ayl-beanstalk/exceptions.rb",
     "spec/ayl_worker_control_spec.rb",
     "spec/ayl_worker_spec.rb",
     "spec/command_line_spec.rb",

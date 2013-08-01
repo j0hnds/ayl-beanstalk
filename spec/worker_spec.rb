@@ -5,6 +5,106 @@ require 'active_record/errors'
 
 describe Ayl::Beanstalk::Worker do
 
+  context '#reserve_job' do
+
+    before(:each) do
+      Kernel.stub(:puts)
+      @worker = Ayl::Beanstalk::Worker.new
+      @worker.stub_chain(:logger, :info)
+      @worker.stub_chain(:logger, :error)
+      @worker.stub_chain(:logger, :debug)
+
+      @mock_pool = mock("Beanstalk::Pool")
+      
+      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(@mock_pool)
+    end
+
+    it "should loop until there are no more jobs from beanstalk" do
+      mock_job1 = mock("Beanstalk::Job")
+      mock_job2 = mock("Beanstalk::Job")
+
+      @mock_pool.should_receive(:reserve).and_return(mock_job1, mock_job2, nil)
+
+      index = 0
+
+      @worker.send(:reserve_job) do | job |
+        job.should == [ mock_job1, mock_job2 ][index]
+        index += 1
+      end
+
+      index.should == 2
+      
+    end
+
+    it "should report any exception while waiting for a job" do
+      @mock_pool.should_receive(:reserve).and_raise('It blew')
+
+      mock_mailer = mock("Mailer")
+      mock_mailer.should_receive(:deliver_message).with(any_args())
+
+      Ayl::Mailer.should_receive(:instance).and_return(mock_mailer)
+
+      @worker.send(:reserve_job) do | job |
+      end
+    end
+
+  end
+
+  context '#deal_with_unexpected_exception' do
+
+    before(:each) do
+      Kernel.stub(:puts)
+      @worker = Ayl::Beanstalk::Worker.new
+      @worker.stub_chain(:logger, :info)
+      @worker.stub_chain(:logger, :error)
+      @worker.stub_chain(:logger, :debug)
+    end
+      
+    it "should call the job's handle_decay method if the message requires the job to decay" do
+      mock_job = mock("Beanstalk::Job")
+      mock_job.should_receive(:ayl_message).and_return do 
+        mock("message").tap do | mock_message |
+          mock_message.should_receive(:options).and_return do
+            mock("options").tap do | mock_options |
+              mock_options.should_receive(:decay_failed_job).and_return(true)
+            end
+          end
+        end
+      end
+
+      mock_exception = mock("Exception")
+      mock_exception.should_receive(:backtrace).and_return([])
+      mock_job.should_receive(:handle_decay).with(mock_exception)
+
+      @worker.send(:deal_with_unexpected_exception, mock_job, mock_exception)
+    end
+
+    it "should call the job's ayl_delete method if the message requires the job to be deleted" do
+      mock_job = mock("Beanstalk::Job")
+      mock_job.should_receive(:ayl_message).and_return do 
+        mock("message").tap do | mock_message |
+          mock_message.should_receive(:options).and_return do
+            mock("options").tap do | mock_options |
+              mock_options.should_receive(:decay_failed_job).and_return(false)
+            end
+          end
+        end
+      end
+
+      mock_exception = mock("Exception")
+      mock_exception.should_receive(:backtrace).and_return([])
+      mock_job.should_receive(:ayl_delete)
+
+      mock_mailer = mock("Mailer")
+      mock_mailer.should_receive(:deliver_message).with(any_args())
+
+      Ayl::Mailer.should_receive(:instance).and_return(mock_mailer)
+
+      @worker.send(:deal_with_unexpected_exception, mock_job, mock_exception)
+    end
+
+  end
+
   context "Message Processing" do
 
     before(:each) do
@@ -13,217 +113,98 @@ describe Ayl::Beanstalk::Worker do
       @worker.stub_chain(:logger, :info)
       @worker.stub_chain(:logger, :error)
       @worker.stub_chain(:logger, :debug)
-      Ayl::MessageOptions.default_queue_name = 'default'
-    end
-    
-    it "should wait for a message to be received from beanstalk and process it" do
-      Ayl::MessageOptions.default_queue_name = 'the_queue_name'
-      mock_job = mock("Beanstalk::Job")
-      mock_job.should_receive(:delete)
-      mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "23.to_s(2)" })
+      Ayl::MessageOptions.default_queue_name = 'the queue name'
 
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("the_queue_name")
-      # Returns nil on the second call.
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
-      
+      @mock_pool = mock("Beanstalk::Pool")
+      @mock_pool.should_receive(:watch).with('the queue name')
+      @worker.stub(:pool).and_return(@mock_pool)
+    end
+
+    it "should process a message received from beanstalk" do
       mock_message = mock("Ayl::Message")
-      mock_message.should_receive(:evaluate)
-      Ayl::Message.stub(:from_hash).with({ :type => :ayl, :code => "23.to_s(2)" }).and_return(mock_message)
 
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
-
-      @worker.process_messages
-      
-    end
-
-    it "should raise an UnrecoverableMessageException when the message body is not a valid hash" do
       mock_job = mock("Beanstalk::Job")
-      mock_job.should_receive(:delete)
-      mock_job.should_receive(:ybody).and_return("a string")
-      mock_job.should_not_receive(:age)
+      mock_job.should_receive(:ayl_message).at_least(1).times.and_return(mock_message)
+      mock_job.should_receive(:ayl_delete)
 
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
-      # Returns nil on the second call.
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
+      @worker.should_receive(:process_message).with(mock_message)
 
-      Ayl::Message.stub(:from_hash).with("a string").and_raise(Ayl::UnrecoverableMessageException)
-
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      @worker.should_receive(:reserve_job).and_yield(mock_job)
 
       @worker.process_messages
     end
 
-    it "should raise an UnrecoverableJobException when the message body is not a valid job type" do
+    it "should do nothing if the received message is invalid (nil)" do
       mock_job = mock("Beanstalk::Job")
-      mock_job.should_receive(:delete)
-      mock_job.should_receive(:ybody).and_return({ :type => :junk, :code => "Dog" })
-      mock_job.should_not_receive(:age)
+      mock_job.should_receive(:ayl_message).at_least(1).times.and_return(nil)
+      mock_job.should_receive(:ayl_delete)
 
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
-      # Returns nil on the second call.
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
+      @worker.should_not_receive(:process_message)
 
-      Ayl::Message.stub(:from_hash).with({ :type => :junk, :code => "Dog" }).and_raise(Ayl::UnrecoverableMessageException)
-
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      @worker.should_receive(:reserve_job).and_yield(mock_job)
 
       @worker.process_messages
     end
 
-    it "should raise an UnrecoverableJobException when there is no code in the message body" do
-      mock_job = mock("Beanstalk::Job")
-      mock_job.should_receive(:delete)
-      mock_job.should_receive(:ybody).and_return({ :type => :ayl })
-      mock_job.should_not_receive(:age)
-
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
-      # Returns nil on the second call.
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
-
-      Ayl::Message.stub(:from_hash).with({ :type => :ayl }).and_raise(Ayl::UnrecoverableMessageException)
-
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
-
-      @worker.process_messages
-    end
-
-    it "should not decay a job that receives an active-record exception when the default message options are used" do
-      mock_job = mock("Beanstalk::Job")
-      mock_job.should_not_receive(:decay)
-      mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "Dog" })
-      mock_job.should_not_receive(:age)
-      mock_job.should_receive(:delete)
-
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
-
+    it "should delete the job and re-raise the exception on a SystemExit" do
       mock_message = mock("Ayl::Message")
-      mock_message.should_receive(:evaluate).and_raise(ActiveRecord::RecordNotFound)
-      mock_message.should_receive(:options).and_return do 
-        mock("Options").tap do | mock_opts |
-          mock_opts.should_receive(:decay_failed_job).and_return(false)
-        end
-      end
-      Ayl::Message.stub(:from_hash).with({ :type => :ayl, :code => "Dog" }).and_return(mock_message)
 
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      mock_job = mock("Beanstalk::Job")
+      mock_job.should_receive(:ayl_message).at_least(1).times.and_return(mock_message)
+      mock_job.should_receive(:ayl_delete)
 
-      @worker.process_messages
-      
+      @worker.should_receive(:process_message).with(mock_message).and_raise(SystemExit)
+
+      @worker.should_receive(:reserve_job).and_yield(mock_job)
+
+      lambda { @worker.process_messages }.should raise_error(SystemExit)
     end
 
-    it "should decay a job that receives an active-record exception on receipt of message that is less than 60 seconds old" do
-      mock_job = mock("Beanstalk::Job")
-      mock_job.should_receive(:decay)
-      mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "Dog" })
-      mock_job.should_receive(:age).exactly(2).times.and_return(10)
-
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
-
+    it "should decay the job if the message requires it" do
       mock_message = mock("Ayl::Message")
-      mock_message.should_receive(:evaluate).and_raise(ActiveRecord::RecordNotFound)
-      mock_message.should_receive(:options).and_return do 
-        mock("Options").tap do | mock_opts |
-          mock_opts.should_receive(:decay_failed_job).and_return(true)
-        end
-      end
-      Ayl::Message.stub(:from_hash).with({ :type => :ayl, :code => "Dog" }).and_return(mock_message)
 
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      mock_job = mock("Beanstalk::Job")
+      mock_job.should_receive(:ayl_message).at_least(1).times.and_return(mock_message)
+      mock_job.should_receive(:ayl_decay).with(20)
+
+      @worker.should_receive(:process_message).with(mock_message).and_raise(Ayl::Beanstalk::RequiresJobDecay.new(20))
+
+      @worker.should_receive(:reserve_job).and_yield(mock_job)
 
       @worker.process_messages
     end
 
-    it "should delete a job that receives an active-record exception on receipt of message that is more than 60 seconds old" do
-      mock_job = mock("Beanstalk::Job")
-      mock_job.should_receive(:delete)
-      mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "Dog" })
-      mock_job.should_receive(:age).exactly(2).times.and_return(65)
-
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
-
+    it "should bury the job if the message requires it" do
       mock_message = mock("Ayl::Message")
-      mock_message.should_receive(:evaluate).and_raise(ActiveRecord::RecordNotFound)
-      mock_message.should_receive(:options).and_return do 
-        mock("Options").tap do | mock_opts |
-          mock_opts.should_receive(:decay_failed_job).and_return(true)
-        end
-      end
-      Ayl::Message.stub(:from_hash).with({ :type => :ayl, :code => "Dog" }).and_return(mock_message)
 
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      mock_job = mock("Beanstalk::Job")
+      mock_job.should_receive(:ayl_message).at_least(1).times.and_return(mock_message)
+      mock_job.should_receive(:ayl_bury)
+
+      @worker.should_receive(:process_message).with(mock_message).and_raise(Ayl::Beanstalk::RequiresJobBury)
+
+      @worker.should_receive(:reserve_job).and_yield(mock_job)
 
       @worker.process_messages
     end
 
-    it "should not attempt to decay the job if there is a problem deleting a job after the message is successfully processed" do
+    it "should handle all other unexpected exceptions" do
+      mock_message = mock("Ayl::Message")
 
       mock_job = mock("Beanstalk::Job")
-      mock_job.should_receive(:delete).and_raise("Delete failed for some reason")
-      mock_job.should_receive(:ybody).and_return({ :type => :ayl, :code => "23.to_s(2)" })
-      mock_job.should_not_receive(:age)
+      mock_job.should_receive(:ayl_message).at_least(1).times.and_return(mock_message)
 
-      mock_pool = mock("Beanstalk::Pool")
-      mock_pool.should_receive(:watch).with("default")
-      mock_pool.should_receive(:reserve).and_return(mock_job, nil)
+      ex = Exception.new
 
-      mock_message = mock("Ayl::Message")
-      mock_message.should_receive(:evaluate)
-      Ayl::Message.stub(:from_hash).with({ :type => :ayl, :code => "23.to_s(2)" }).and_return(mock_message)
+      @worker.should_receive(:process_message).with(mock_message).and_raise(ex)
 
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      @worker.should_receive(:reserve_job).and_yield(mock_job)
+      @worker.should_receive(:deal_with_unexpected_exception).with(mock_job, ex)
 
-      expect { @worker.process_messages }.not_to raise_error
-    end
-  end
-
-  context '#delete_job' do
-
-    before(:each) do
-      Kernel.stub(:puts)
-      @worker = Ayl::Beanstalk::Worker.new
-      @worker.stub_chain(:logger, :info)
-      @worker.stub_chain(:logger, :error)
-      @worker.stub_chain(:logger, :debug)
-      Ayl::MessageOptions.default_queue_name = 'default'
-    end
-
-    it "should not raise an exception if the job.delete fail" do
-      mock_job = mock("Job")
-      mock_job.should_receive(:delete).and_raise("Delete failed for some reason")
-
-      expect { @worker.delete_job(mock_job) }.not_to raise_error
+      @worker.process_messages
     end
 
   end
 
-  context '#decay_job' do
-
-    before(:each) do
-      Kernel.stub(:puts)
-      @worker = Ayl::Beanstalk::Worker.new
-      @worker.stub_chain(:logger, :info)
-      @worker.stub_chain(:logger, :error)
-      @worker.stub_chain(:logger, :debug)
-      Ayl::MessageOptions.default_queue_name = 'default'
-    end
-
-    it "should not raise an exception if the job.delete fail" do
-      mock_job = mock("Job")
-      mock_job.should_receive(:decay).and_raise("Decay failed for some reason")
-
-      expect { @worker.decay_job(mock_job) }.not_to raise_error
-    end
-
-  end
 
 end

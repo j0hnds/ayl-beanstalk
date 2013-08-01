@@ -14,71 +14,96 @@ module Ayl
 
       def process_messages
         logger.debug "#{self.class.name} entering process_messages loop watching: #{Ayl::MessageOptions.default_queue_name}"
+
         # Set the queue that we will be watching
         pool.watch(Ayl::MessageOptions.default_queue_name)
-        while true
-          break if @stop
-          job = nil
+
+        reserve_job do | job |
           begin
-            job = pool.reserve
-          rescue Exception => ex
-            logger.error "#{self.class.name} Exception in process_messages: #{ex}\n#{ex.backtrace.join("\n")}"
-            Ayl::Mailer.instance.deliver_message("#{self.class.name} Exception in process_messages.", ex)
-            delete_job(job) unless job.nil?
-            next
-          end
-          break if job.nil?
-          msg = nil
-          begin
-            msg = Ayl::Message.from_hash(job.ybody)
-            process_message(msg)
-            delete_job(job)
-          rescue Ayl::UnrecoverableMessageException => ex
-            logger.error "#{self.class.name} Unrecoverable exception in process_messages: #{ex}"
-            Ayl::Mailer.instance.deliver_message("#{self.class.name} Unrecoverable exception in process_messages", ex)
-            delete_job(job)
+
+            process_message(job.ayl_message) unless job.ayl_message.nil?
+            job.ayl_delete
+
           rescue SystemExit
+
             # This exception is raised when 'Kernel.exit' is called. In this case
             # we want to make sure the job is deleted, then we simply re-raise
             # the exception and we go bye-bye.
-            delete_job(job)
+            job.ayl_delete
             raise
+
+          rescue Ayl::Beanstalk::RequiresJobDecay => ex
+
+            # The code in the message body has requested that we throw this job back
+            # in the queue with a delay.
+            job.ayl_decay(ex.delay)
+
+          rescue Ayl::Beanstalk::RequiresJobBury => ex
+            
+            # The code in the message body has requested that we throw this job
+            # into the 'buried' state. This will allow a human to look the job
+            # over and determine if it can be processed
+            job.ayl_bury
+
           rescue Exception => ex
-            logger.error "#{self.class.name} Exception in process_messages: #{ex}\n#{ex.backtrace.join("\n")}"
-            if msg.options.decay_failed_job
-              handle_job_decay(job, ex)
-            else
-              delete_job(job)
-              Ayl::Mailer.instance.deliver_message("#{self.class.name} Exception in process_messages.", ex)
-            end
+
+            deal_with_unexpected_exception(job, ex)
+
           end
+
+        end # reserve_job...
+
+      end
+
+      private
+
+      #
+      # The main loop that gets job from the beanstalk queue to process. When a job is
+      # received it will be passed to the block for this method.
+      #
+      def reserve_job
+        while true
+          job = nil
+
+          begin
+
+            # Sit around and wait for a job to become available
+            job = pool.reserve
+
+          rescue Exception => ex
+
+            logger.error "Unexpected exception in reserve_job: #{ex}\n#{ex.backtrace.join("\n")}"
+            Ayl::Mailer.instance.deliver_message("Unexpected exception in process_messages.", ex)
+            job.ayl_delete unless job.nil?
+
+            # Notice that we are just breaking out of the loop here. Why?
+            # Think about the kinds of exceptions that occur here. They will be
+            # things like Beanstalk::OUT_OF_MEMORY errors, beanstalkd connection
+            # errors, etc. At this point, the worker is finished, kaput. Might as
+            # well report and die. That's exactly what will happen.
+            break
+            
+          end
+
+          break if job.nil?
+
+          yield job
+
         end
       end
 
-      def handle_job_decay(job, ex)
-        logger.debug "Age of job: #{job.age}"
-        if job.age > 60
-          Ayl::Mailer.instance.deliver_message("#{self.class.name} Deleting decayed job; it just took too long.", ex)
-          logger.debug "Deleting job"
-          delete_job(job)
+      #
+      # Deals with the decision to decay or delete job when an unexpected
+      # exception is encountered.
+      #
+      def deal_with_unexpected_exception(job, ex)
+        logger.error "Unexpected exception in process_messages: #{ex}\n#{ex.backtrace.join("\n")}"
+        if job.ayl_message.options.decay_failed_job
+          job.handle_decay(ex)
         else
-          logger.debug "Decaying job"
-          decay_job(job)
+          job.ayl_delete
+          Ayl::Mailer.instance.deliver_message("Exception in process_messages.", ex)
         end
-      end
-
-      def delete_job(job)
-        job.delete
-      rescue RuntimeError => ex
-        logger.error "#{self.class.name} Error deleting job: #{ex}\n#{ex.backtrace.join("\n")}"
-        Ayl::Mailer.instance.deliver_message("#{self.class.name} Error deleting job", ex)
-      end
-
-      def decay_job(job)
-        job.decay
-      rescue RuntimeError => ex
-        logger.error "#{self.class.name} Error decaying job: #{ex}\n#{ex.backtrace.join("\n")}"
-        Ayl::Mailer.instance.deliver_message("#{self.class.name} Error decaying job", ex)
       end
 
     end
