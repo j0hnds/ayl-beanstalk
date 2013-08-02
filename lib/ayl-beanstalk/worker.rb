@@ -98,11 +98,17 @@ module Ayl
       #
       def deal_with_unexpected_exception(job, ex)
         logger.error "Unexpected exception in process_messages: #{ex}\n#{ex.backtrace.join("\n")}"
-        if job.ayl_message.options.decay_failed_job
+        case job.ayl_message.options.failed_job_handler
+        when 'decay'
           job.handle_decay(ex)
-        else
+        when 'delete'
           job.ayl_delete
-          Ayl::Mailer.instance.deliver_message("Exception in process_messages.", ex)
+          Ayl::Mailer.instance.deliver_message("Exception in process_messages. Job deleted.", ex)
+        when 'bury'
+          job.ayl_bury
+          Ayl::Mailer.instance.deliver_message("Exception in process_messages. Job buried", ex)
+        else
+          Ayl::Mailer.instance.deliver_message("Invalid failed job handler specified: #{job.ayl_message.options.failed_job_handler}", ex)
         end
       end
 

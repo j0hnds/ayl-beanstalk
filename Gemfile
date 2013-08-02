@@ -2,7 +2,7 @@ source "http://rubygems.org"
 # Add dependencies required to use your gem here.
 # Example:
 #   gem "activesupport", ">= 2.3.5"
-gem 'ayl', ">= 0.2.1"
+gem 'ayl', ">= 0.3.0"
 gem 'beanstalk-client', ">= 1.1.0"
 gem 'daemons', ">= 1.1.0"
 

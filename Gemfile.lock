@@ -30,7 +30,7 @@ GEM
     activesupport (3.1.2)
       multi_json (~> 1.0)
     arel (2.2.1)
-    ayl (0.2.1)
+    ayl (0.3.0)
     beanstalk-client (1.1.1)
     builder (3.0.0)
     coderay (0.9.8)
@@ -114,7 +114,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  ayl (>= 0.2.1)
+  ayl (>= 0.3.0)
   beanstalk-client (>= 1.1.0)
   bundler (>= 1.0.0)
   daemons (>= 1.1.0)

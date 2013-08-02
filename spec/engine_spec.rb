@@ -47,7 +47,7 @@ describe Ayl::Beanstalk::Engine do
       it "should submit the specified message to beanstalk" do
         mock_pool = mock("Beanstalk::Pool")
         mock_pool.should_receive(:use).with("default")
-        mock_pool.should_receive(:yput).with( { :type => :ayl, :decay_failed_job => false, :code => "23.to_s(2)" }, 512, 0, 120)
+        mock_pool.should_receive(:yput).with( { :type => :ayl, :failed_job_handler => 'delete', :code => "23.to_s(2)" }, 512, 0, 120)
 
         ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
 

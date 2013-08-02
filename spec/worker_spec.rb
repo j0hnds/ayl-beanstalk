@@ -66,7 +66,7 @@ describe Ayl::Beanstalk::Worker do
         mock("message").tap do | mock_message |
           mock_message.should_receive(:options).and_return do
             mock("options").tap do | mock_options |
-              mock_options.should_receive(:decay_failed_job).and_return(true)
+              mock_options.should_receive(:failed_job_handler).and_return('decay')
             end
           end
         end
@@ -85,7 +85,7 @@ describe Ayl::Beanstalk::Worker do
         mock("message").tap do | mock_message |
           mock_message.should_receive(:options).and_return do
             mock("options").tap do | mock_options |
-              mock_options.should_receive(:decay_failed_job).and_return(false)
+              mock_options.should_receive(:failed_job_handler).and_return('delete')
             end
           end
         end
@@ -94,6 +94,30 @@ describe Ayl::Beanstalk::Worker do
       mock_exception = mock("Exception")
       mock_exception.should_receive(:backtrace).and_return([])
       mock_job.should_receive(:ayl_delete)
+
+      mock_mailer = mock("Mailer")
+      mock_mailer.should_receive(:deliver_message).with(any_args())
+
+      Ayl::Mailer.should_receive(:instance).and_return(mock_mailer)
+
+      @worker.send(:deal_with_unexpected_exception, mock_job, mock_exception)
+    end
+
+    it "should call the job's ayl_bury method if the message requires the job to be buried" do
+      mock_job = mock("Beanstalk::Job")
+      mock_job.should_receive(:ayl_message).and_return do 
+        mock("message").tap do | mock_message |
+          mock_message.should_receive(:options).and_return do
+            mock("options").tap do | mock_options |
+              mock_options.should_receive(:failed_job_handler).and_return('bury')
+            end
+          end
+        end
+      end
+
+      mock_exception = mock("Exception")
+      mock_exception.should_receive(:backtrace).and_return([])
+      mock_job.should_receive(:ayl_bury)
 
       mock_mailer = mock("Mailer")
       mock_mailer.should_receive(:deliver_message).with(any_args())
