@@ -41,7 +41,7 @@ describe Ayl::Beanstalk::Engine do
     context "Message Submission" do
       
       before(:each) do
-        @msg = Ayl::Message.new(23, :to_s, Ayl::MessageOptions.new, 2)
+        @msg = Ayl::ObjectSelectorMessage.new(23, :to_s, Ayl::MessageOptions.new, 2)
       end
 
       it "should submit the specified message to beanstalk" do

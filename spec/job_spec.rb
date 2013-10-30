@@ -13,7 +13,7 @@ describe Beanstalk::Job do
 
     it "should return the message constructed from the body of the job" do
       @job.stub(:ybody).and_return('the body')
-      msg = Ayl::Message.new(nil,nil,nil)
+      msg = Ayl::ObjectSelectorMessage.new(nil,nil,nil)
       Ayl::Message.should_receive(:from_hash).with('the body').and_return(msg)
 
       @job.ayl_message.should == msg
@@ -21,7 +21,7 @@ describe Beanstalk::Job do
 
     it "should return the same message constructed from the body of the job on subsequent calls" do
       @job.stub(:ybody).and_return('the body')
-      msg = Ayl::Message.new(nil,nil,nil)
+      msg = Ayl::ObjectSelectorMessage.new(nil,nil,nil)
       Ayl::Message.should_receive(:from_hash).with('the body').and_return(msg)
 
       @job.ayl_message.should == msg
@@ -31,7 +31,7 @@ describe Beanstalk::Job do
 
     it "should return nil and send an email if the message body was bad" do
       @job.stub(:ybody).and_return('the body')
-      msg = Ayl::Message.new(nil,nil,nil)
+      msg = Ayl::ObjectSelectorMessage.new(nil,nil,nil)
       ex = Ayl::UnrecoverableMessageException.new
       Ayl::Message.should_receive(:from_hash).with('the body').and_raise(ex)
 
