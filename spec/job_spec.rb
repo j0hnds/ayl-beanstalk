@@ -14,34 +14,33 @@ describe Beanstalk::Job do
     it "should return the message constructed from the body of the job" do
       @job.stub(:ybody).and_return('the body')
       msg = Ayl::Message.new(nil,nil,nil)
-      Ayl::Message.should_receive(:from_hash).with('the body').and_return(msg)
+      expect(Ayl::Message).to receive(:from_hash).with('the body').and_return(msg)
 
-      @job.ayl_message.should == msg
+      expect(@job.ayl_message).to eq(msg)
     end
 
     it "should return the same message constructed from the body of the job on subsequent calls" do
       @job.stub(:ybody).and_return('the body')
       msg = Ayl::Message.new(nil,nil,nil)
-      Ayl::Message.should_receive(:from_hash).with('the body').and_return(msg)
+      expect(Ayl::Message).to receive(:from_hash).with('the body').and_return(msg)
 
-      @job.ayl_message.should == msg
+      expect(@job.ayl_message).to eq(msg)
 
-      @job.ayl_message.should == msg
+      expect(@job.ayl_message).to eq(msg)
     end
 
     it "should return nil and send an email if the message body was bad" do
       @job.stub(:ybody).and_return('the body')
       msg = Ayl::Message.new(nil,nil,nil)
       ex = Ayl::UnrecoverableMessageException.new
-      Ayl::Message.should_receive(:from_hash).with('the body').and_raise(ex)
+      expect(Ayl::Message).to receive(:from_hash).with('the body').and_raise(ex)
 
-      Ayl::Mailer.should_receive(:instance).and_return do 
-        mock("Mailer").tap do | mock_mailer |
-          mock_mailer.should_receive(:deliver_message).with(anything(), ex)
-        end
-      end
+      mock_mailer = double("Mailer")
+      expect(mock_mailer).to receive(:deliver_message).with(anything(), ex)
 
-      @job.ayl_message.should == nil
+      expect(Ayl::Mailer).to receive(:instance).and_return(mock_mailer)
+
+      expect(@job.ayl_message).to be_nil
     end
 
   end
@@ -49,20 +48,19 @@ describe Beanstalk::Job do
   context '#ayl_delete' do
 
     it "should call the delete method on the job" do
-      @job.should_receive(:delete)
+      expect(@job).to receive(:delete)
 
       @job.ayl_delete
     end
 
     it "should send an email if the delete method raises an exception" do
       ex = Exception.new
-      @job.should_receive(:delete).and_raise(ex)
+      expect(@job).to receive(:delete).and_raise(ex)
 
-      Ayl::Mailer.should_receive(:instance).and_return do 
-        mock("Mailer").tap do | mock_mailer |
-          mock_mailer.should_receive(:deliver_message).with(anything(), ex)
-        end
-      end
+      mock_mailer = double("Mailer")
+      expect(mock_mailer).to receive(:deliver_message).with(anything(), ex)
+
+      expect(Ayl::Mailer).to receive(:instance).and_return(mock_mailer) 
 
       @job.ayl_delete
     end
@@ -72,32 +70,31 @@ describe Beanstalk::Job do
   context '#ayl_decay' do
 
     it "should call the decay with no arguments when nil delay is specified" do
-      @job.should_receive(:decay).with()
+      expect(@job).to receive(:decay).with()
 
       @job.ayl_decay(nil)
     end
 
     it "should call the decay with no arguments when no delay is specified" do
-      @job.should_receive(:decay).with()
+      expect(@job).to receive(:decay).with()
 
       @job.ayl_decay
     end
 
     it "should call the decay with no arguments when no delay is specified" do
-      @job.should_receive(:decay).with(10)
+      expect(@job).to receive(:decay).with(10)
 
       @job.ayl_decay(10)
     end
 
     it "should send an email if the decay method raises an exception" do
       ex = Exception.new
-      @job.should_receive(:decay).and_raise(ex)
+      expect(@job).to receive(:decay).and_raise(ex)
 
-      Ayl::Mailer.should_receive(:instance).and_return do 
-        mock("Mailer").tap do | mock_mailer |
-          mock_mailer.should_receive(:deliver_message).with(anything(), ex)
-        end
-      end
+      mock_mailer = double("Mailer")
+      expect(mock_mailer).to receive(:deliver_message).with(anything(), ex)
+
+      expect(Ayl::Mailer).to receive(:instance).and_return(mock_mailer)
 
       @job.ayl_decay
     end
@@ -107,20 +104,19 @@ describe Beanstalk::Job do
   context '#ayl_bury' do
 
     it "should call the bury method on the job" do
-      @job.should_receive(:bury)
+      expect(@job).to receive(:bury)
 
       @job.ayl_bury
     end
 
     it "should send an email if the bury method raises an exception" do
       ex = Exception.new
-      @job.should_receive(:bury).and_raise(ex)
+      expect(@job).to receive(:bury).and_raise(ex)
 
-      Ayl::Mailer.should_receive(:instance).and_return do 
-        mock("Mailer").tap do | mock_mailer |
-          mock_mailer.should_receive(:deliver_message).with(anything(), ex)
-        end
-      end
+      mock_mailer = double("Mailer")
+      expect(mock_mailer).to receive(:deliver_message).with(anything(), ex)
+
+      expect(Ayl::Mailer).to receive(:instance).and_return(mock_mailer)
 
       @job.ayl_bury
     end
@@ -129,37 +125,39 @@ describe Beanstalk::Job do
 
   context '#handle_decay' do
 
-    it "should decay the job if the age of the job is less than 60 seconds" do
-      @job.should_receive(:age).at_least(1).times.and_return(2)
-      @job.should_receive(:ayl_decay)
-      
-      ex = Exception.new
+    it "should decay the job if the number of times the job has been reserved is less than the configured failed job count" do
+      mock_options = double("options")
+      expect(mock_options).to receive(:failed_job_count).and_return(2)
+      expect(mock_options).to receive(:failed_job_delay).and_return(3)
 
-      @job.handle_decay(ex)
+      mock_message = double("message")
+      expect(mock_message).to receive(:options).exactly(2).times.and_return(mock_options)
+
+      expect(@job).to receive(:reserves).and_return(1)
+      expect(@job).to receive(:ayl_message).exactly(2).times.and_return(mock_message)
+      expect(@job).to receive(:ayl_decay).with(3)
+
+      @job.handle_decay(Exception.new)
     end
 
-    it "should decay the job if the age of the job is exactly 60 seconds" do
-      @job.should_receive(:age).at_least(1).times.and_return(60)
-      @job.should_receive(:ayl_decay)
-      
-      ex = Exception.new
+    it "should bury the job if the number of times the job has been reserved is the same or more than the configured failed job count" do
+      mock_options = double("options")
+      expect(mock_options).to receive(:failed_job_count).and_return(2)
 
-      @job.handle_decay(ex)
-    end
+      mock_message = double("message")
+      expect(mock_message).to receive(:options).and_return(mock_options)
+      expect(mock_message).to receive(:code).and_return('the code')
 
-    it "should delete the job and send an email if the job was older than 60 seconds" do
-      @job.should_receive(:age).at_least(1).times.and_return(61)
-      @job.should_receive(:ayl_delete)
-      
-      ex = Exception.new
+      expect(@job).to receive(:reserves).and_return(2)
+      expect(@job).to receive(:ayl_message).exactly(2).times.and_return(mock_message)
+      expect(@job).to receive(:ayl_bury)
 
-      Ayl::Mailer.should_receive(:instance).and_return do 
-        mock("Mailer").tap do | mock_mailer |
-          mock_mailer.should_receive(:deliver_message).with(anything(), ex)
-        end
-      end
+      mock_mailer = double('Ayl::Mailer')
+      expect(mock_mailer).to receive(:burying_job).with('the code')
 
-      @job.handle_decay(ex)
+      expect(Ayl::Mailer).to receive(:instance).and_return(mock_mailer)
+
+      @job.handle_decay(Exception.new)
     end
 
   end

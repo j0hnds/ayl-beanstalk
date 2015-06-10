@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["j0hnds@gmail.com"]
   s.date = "2013-08-07"
-  s.description = "Ayl extension to provide beanstalk support."
+  s.description = "An Ayl extension to provide beanstalk support for applications requiring async processing."
   s.email = "j0hnds@gmail.com"
   s.executables = ["ayl_beanstalk", "ayl_worker", "ayl_worker_control"]
   s.extra_rdoc_files = [

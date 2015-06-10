@@ -53,20 +53,22 @@ class Beanstalk::Job
     Ayl::Mailer.instance.deliver_message("Error decaying job", ex)
   end
 
+  def reserves
+    stats['reserves']
+  end
   #
-  # Handle the decay process by deleting the job if its age is more than
-  # 60 seconds, but delaying it if it is younger than 60 seconds. Obviously
-  # we want to handle any exceptions that occur here.
+  # If this job message has been configured for 'decay' handling,
+  # then the rules are as follows:
+  #
   #
   def handle_decay(ex)
-    logger.debug "Age of job: #{age}"
-    if age > 60
-      Ayl::Mailer.instance.deliver_message("Deleting decayed job; it just took too long.", ex)
-      logger.debug "Deleting job"
-      ayl_delete
+    if reserves < ayl_message.options.failed_job_count
+      ayl_decay ayl_message.options.failed_job_delay
     else
-      logger.debug "Decaying job"
-      ayl_decay
+      # This job has already been reserved too many times.
+      # Bury it.
+      ayl_bury
+      Ayl::Mailer.instance.burying_job(ayl_message.code)
     end
   end
 

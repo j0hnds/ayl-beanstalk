@@ -16,26 +16,26 @@ describe Ayl::Beanstalk::Engine do
     end
 
     it "should default to localhost and 11300 as the host port for the beanstalkd server" do
-      @engine.host.should == 'localhost'
-      @engine.port.should == 11300
+      expect(@engine.host).to eq('localhost')
+      expect(@engine.port).to eq(11300)
     end
 
     it "should respond true to the asynchronous? message" do
-      @engine.asynchronous?.should be_true
+      expect(@engine.asynchronous?).to be true
     end
 
     it "should return true if it has a valid connection to beanstalk" do
-      mock_pool = mock("Beanstalk::Pool")
+      mock_pool = double("Beanstalk::Pool")
 
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      expect(::Beanstalk::Pool).to receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
 
-      @engine.is_connected?.should be_true
+      expect(@engine.is_connected?).to be true
     end
 
     it "should return false if it does not have a valid connection to beanstalk" do
-      ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_raise(::Beanstalk::NotConnected)
+      expect(::Beanstalk::Pool).to receive(:new).with([ "localhost:11300" ]).and_raise(::Beanstalk::NotConnected)
 
-      @engine.is_connected?.should be_false
+      expect(@engine.is_connected?).to be false
     end
 
     context "Message Submission" do
@@ -45,11 +45,11 @@ describe Ayl::Beanstalk::Engine do
       end
 
       it "should submit the specified message to beanstalk" do
-        mock_pool = mock("Beanstalk::Pool")
-        mock_pool.should_receive(:use).with("default")
-        mock_pool.should_receive(:yput).with( { :type => :ayl, :failed_job_handler => 'delete', :code => "23.to_s(2)" }, 512, 0, 120)
+        mock_pool = double("Beanstalk::Pool")
+        expect(mock_pool).to receive(:use).with("default")
+        expect(mock_pool).to receive(:yput).with( { :type => :ayl, :failed_job_handler => 'delete', :code => "23.to_s(2)" }, 512, 0, 120)
 
-        ::Beanstalk::Pool.should_receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+        expect(::Beanstalk::Pool).to receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
 
         @engine.submit(@msg)
       end

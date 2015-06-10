@@ -13,14 +13,14 @@ describe 'ayl_worker_control script' do
 
     it "should honor the use of the -a option to name the daemon" do
       ARGV.concat [ '--', '--pid-path', '/tmp', '--name', 'the_name' ]
-      Daemons.should_receive(:run).with(anything, { :log_dir => '/tmp', :log_output => true, :dir_mode => :normal, :dir => '/tmp', :multiple => true, :app_name => 'the_name' })
+      expect(Daemons).to receive(:run).with(anything, { :log_dir => '/tmp', :log_output => true, :dir_mode => :normal, :dir => '/tmp', :multiple => true, :app_name => 'the_name' })
 
       load(@ayl_control_script, true)
     end
 
     it "should assume the use of the script for the daemon name if no name argument is specified" do
       ARGV.concat [ '--', '--pid-path', '/tmp' ]
-      Daemons.should_receive(:run).with(anything, { :log_dir => '/tmp', :log_output => true, :dir_mode => :normal, :dir => '/tmp', :multiple => true })
+      expect(Daemons).to receive(:run).with(anything, { :log_dir => '/tmp', :log_output => true, :dir_mode => :normal, :dir => '/tmp', :multiple => true })
 
       load(@ayl_control_script, true)
     end

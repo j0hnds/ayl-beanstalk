@@ -13,34 +13,34 @@ describe "ayl_worker script" do
 
     it "requires that an application path be specified" do
       Object.any_instance.stub(:puts)
-      lambda { load(@ayl_script, true) }.should exit_with_code(64)
+      expect { load(@ayl_script, true) }.to exit_with_code(64)
     end
 
     it "should exit with a status code of 0 if help is invoked" do
       ARGV << '--help'
       Ayl::CommandLine.stub(:puts)
-      lambda { load(@ayl_script, true) }.should exit_with_code(0)
+      expect { load(@ayl_script, true) }.to exit_with_code(0)
     end
 
     it "should exit when an invalid argument is specified" do
       ARGV << '--not-real'
 
-      lambda { load(@ayl_script, true) }.should raise_error(OptionParser::InvalidOption)
+      expect { load(@ayl_script, true) }.to raise_error(OptionParser::InvalidOption)
     end
 
     it "should set the correct tube name when specified on the command line" do
       ARGV.concat [ "-a", "support", "-t", "the-tube" ]
       
-      Ayl::MessageOptions.should_receive(:default_queue_name=).with('the-tube')
+      expect(Ayl::MessageOptions).to receive(:default_queue_name=).with('the-tube')
 
-      mock_worker = mock("Worker")
-      mock_worker.should_receive(:process_messages)
-      mock_worker.should_receive(:eval_binding=)
+      mock_worker = double("Worker")
+      expect(mock_worker).to receive(:process_messages)
+      expect(mock_worker).to receive(:eval_binding=)
 
-      mock_active_engine = mock("ActiveEngine")
-      mock_active_engine.should_receive(:worker).and_return(mock_worker)
+      mock_active_engine = double("ActiveEngine")
+      expect(mock_active_engine).to receive(:worker).and_return(mock_worker)
 
-      Ayl::Engine.should_receive(:get_active_engine).and_return(mock_active_engine)
+      expect(Ayl::Engine).to receive(:get_active_engine).and_return(mock_active_engine)
 
       load(@ayl_script, true)
     end
@@ -48,16 +48,16 @@ describe "ayl_worker script" do
     it "should set the default tube name when not specified on the command line" do
       ARGV.concat [ "-a", "support" ]
       
-      Ayl::MessageOptions.should_receive(:default_queue_name=).with('default')
+      expect(Ayl::MessageOptions).to receive(:default_queue_name=).with('default')
 
-      mock_worker = mock("Worker")
-      mock_worker.should_receive(:process_messages)
-      mock_worker.should_receive(:eval_binding=)
+      mock_worker = double("Worker")
+      expect(mock_worker).to receive(:process_messages)
+      expect(mock_worker).to receive(:eval_binding=)
 
-      mock_active_engine = mock("ActiveEngine")
-      mock_active_engine.should_receive(:worker).and_return(mock_worker)
+      mock_active_engine = double("ActiveEngine")
+      expect(mock_active_engine).to receive(:worker).and_return(mock_worker)
 
-      Ayl::Engine.should_receive(:get_active_engine).and_return(mock_active_engine)
+      expect(Ayl::Engine).to receive(:get_active_engine).and_return(mock_active_engine)
 
       load(@ayl_script, true)
     end
@@ -65,17 +65,17 @@ describe "ayl_worker script" do
     it "should default to a rails production environment if not specified" do
       ARGV.concat [ "-a", "support", "-r" ]
 
-      Ayl::MessageOptions.should_receive(:default_queue_name=).with('default')
+      expect(Ayl::MessageOptions).to receive(:default_queue_name=).with('default')
 
-      mock_worker = mock("Worker")
-      mock_worker.should_receive(:process_messages)
-      mock_worker.should_receive(:eval_binding=)
+      mock_worker = double("Worker")
+      expect(mock_worker).to receive(:process_messages)
+      expect(mock_worker).to receive(:eval_binding=)
 
-      mock_active_engine = mock("ActiveEngine")
-      mock_active_engine.should_receive(:worker).and_return(mock_worker)
+      mock_active_engine = double("ActiveEngine")
+      expect(mock_active_engine).to receive(:worker).and_return(mock_worker)
 
-      Ayl::Engine.should_receive(:get_active_engine).and_return(mock_active_engine)
-      ENV.should_receive(:[]=).with('RAILS_ENV', 'production')
+      expect(Ayl::Engine).to receive(:get_active_engine).and_return(mock_active_engine)
+      expect(ENV).to receive(:[]=).with('RAILS_ENV', 'production')
 
       load(@ayl_script, true)
     end
@@ -83,17 +83,17 @@ describe "ayl_worker script" do
     it "should use the specified rails environment" do
       ARGV.concat [ "-a", "support", "-r", "-e", "development" ]
 
-      Ayl::MessageOptions.should_receive(:default_queue_name=).with('default')
+      expect(Ayl::MessageOptions).to receive(:default_queue_name=).with('default')
 
-      mock_worker = mock("Worker")
-      mock_worker.should_receive(:process_messages)
-      mock_worker.should_receive(:eval_binding=)
+      mock_worker = double("Worker")
+      expect(mock_worker).to receive(:process_messages)
+      expect(mock_worker).to receive(:eval_binding=)
 
-      mock_active_engine = mock("ActiveEngine")
-      mock_active_engine.should_receive(:worker).and_return(mock_worker)
+      mock_active_engine = double("ActiveEngine")
+      expect(mock_active_engine).to receive(:worker).and_return(mock_worker)
 
-      Ayl::Engine.should_receive(:get_active_engine).and_return(mock_active_engine)
-      ENV.should_receive(:[]=).with('RAILS_ENV', 'development')
+      expect(Ayl::Engine).to receive(:get_active_engine).and_return(mock_active_engine)
+      expect(ENV).to receive(:[]=).with('RAILS_ENV', 'development')
 
       load(@ayl_script, true)
     end

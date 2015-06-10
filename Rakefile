@@ -18,7 +18,7 @@ Jeweler::Tasks.new do |gem|
   gem.homepage = "http://github.com/j0hnds/ayl-beanstalk"
   gem.license = "MIT"
   gem.summary = %Q{Ayl extension to provide beanstalk support.}
-  gem.description = %Q{Ayl extension to provide beanstalk support.}
+  gem.description = %Q{Ayl extension to provide beanstalk support for applications requiring async processing.}
   gem.email = "j0hnds@gmail.com"
   gem.authors = ["j0hnds@gmail.com"]
   # dependencies defined in Gemfile
