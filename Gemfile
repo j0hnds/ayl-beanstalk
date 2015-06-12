@@ -3,7 +3,7 @@ source "http://rubygems.org"
 # Example:
 #   gem "activesupport", ">= 2.3.5"
 gem 'ayl', "~> 0.4"
-gem 'beanstalk-client', "~> 1.1"
+gem 'beaneater', '~> 1.0'
 gem 'daemons', "~> 1.1"
 
 # Add dependencies to develop your gem here.

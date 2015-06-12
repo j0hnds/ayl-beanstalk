@@ -16,7 +16,7 @@ module Ayl
         logger.debug "#{self.class.name} entering process_messages loop watching: #{Ayl::MessageOptions.default_queue_name}"
 
         # Set the queue that we will be watching
-        pool.watch(Ayl::MessageOptions.default_queue_name)
+        pool.tubes.watch!(Ayl::MessageOptions.default_queue_name)
 
         reserve_job do | job |
           begin
@@ -68,7 +68,7 @@ module Ayl
           begin
 
             # Sit around and wait for a job to become available
-            job = pool.reserve
+            job = pool.tubes.reserve
 
           rescue Exception => ex
 

@@ -1,10 +1,9 @@
 require 'spec_helper'
-require 'beanstalk-client'
 
-describe Beanstalk::Job do
+describe Beaneater::Job do
   
   before(:each) do
-    @job = Beanstalk::Job.new(nil,nil,nil)
+    @job = Beaneater::Job.new(nil,{id: '1', body: '{"ayl":"thing"}', status: 'RESERVED'})
     @job.stub_chain(:logger, :error)
     @job.stub_chain(:logger, :debug)
   end
@@ -12,17 +11,15 @@ describe Beanstalk::Job do
   context '#ayl_message' do
 
     it "should return the message constructed from the body of the job" do
-      @job.stub(:ybody).and_return('the body')
       msg = Ayl::Message.new(nil,nil,nil)
-      expect(Ayl::Message).to receive(:from_hash).with('the body').and_return(msg)
+      expect(Ayl::Message).to receive(:from_hash).with({"ayl"=>"thing"}).and_return(msg)
 
       expect(@job.ayl_message).to eq(msg)
     end
 
     it "should return the same message constructed from the body of the job on subsequent calls" do
-      @job.stub(:ybody).and_return('the body')
       msg = Ayl::Message.new(nil,nil,nil)
-      expect(Ayl::Message).to receive(:from_hash).with('the body').and_return(msg)
+      expect(Ayl::Message).to receive(:from_hash).with({"ayl"=>"thing"}).and_return(msg)
 
       expect(@job.ayl_message).to eq(msg)
 
@@ -30,10 +27,9 @@ describe Beanstalk::Job do
     end
 
     it "should return nil and send an email if the message body was bad" do
-      @job.stub(:ybody).and_return('the body')
       msg = Ayl::Message.new(nil,nil,nil)
       ex = Ayl::UnrecoverableMessageException.new
-      expect(Ayl::Message).to receive(:from_hash).with('the body').and_raise(ex)
+      expect(Ayl::Message).to receive(:from_hash).with({"ayl"=>"thing"}).and_raise(ex)
 
       mock_mailer = double("Mailer")
       expect(mock_mailer).to receive(:deliver_message).with(anything(), ex)
@@ -70,26 +66,26 @@ describe Beanstalk::Job do
   context '#ayl_decay' do
 
     it "should call the decay with no arguments when nil delay is specified" do
-      expect(@job).to receive(:decay).with()
+      expect(@job).to receive(:release).with({})
 
       @job.ayl_decay(nil)
     end
 
     it "should call the decay with no arguments when no delay is specified" do
-      expect(@job).to receive(:decay).with()
+      expect(@job).to receive(:release).with({})
 
       @job.ayl_decay
     end
 
     it "should call the decay with no arguments when no delay is specified" do
-      expect(@job).to receive(:decay).with(10)
+      expect(@job).to receive(:release).with({delay: 10})
 
       @job.ayl_decay(10)
     end
 
     it "should send an email if the decay method raises an exception" do
       ex = Exception.new
-      expect(@job).to receive(:decay).and_raise(ex)
+      expect(@job).to receive(:release).and_raise(ex)
 
       mock_mailer = double("Mailer")
       expect(mock_mailer).to receive(:deliver_message).with(anything(), ex)

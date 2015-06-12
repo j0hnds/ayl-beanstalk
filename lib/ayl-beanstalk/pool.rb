@@ -5,7 +5,7 @@ module Ayl
     module Pool
 
       def pool
-        @pool ||= ::Beanstalk::Pool.new([ "#{@host}:#{@port}" ])
+        @pool ||= ::Beaneater.new("#{@host}:#{@port}")
       end
 
     end

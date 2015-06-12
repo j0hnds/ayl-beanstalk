@@ -30,7 +30,7 @@ GEM
     addressable (2.3.8)
     arel (5.0.1.20140414130214)
     ayl (0.4.0)
-    beanstalk-client (1.1.1)
+    beaneater (1.0.0)
     builder (3.2.2)
     coderay (0.9.8)
     daemons (1.1.4)
@@ -134,7 +134,7 @@ PLATFORMS
 
 DEPENDENCIES
   ayl (~> 0.4)
-  beanstalk-client (~> 1.1)
+  beaneater (~> 1.0)
   bundler (~> 1.10)
   daemons (~> 1.1)
   jeweler (~> 2.0)

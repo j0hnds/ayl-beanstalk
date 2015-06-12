@@ -4,8 +4,9 @@
 # running this script, enter 'beastalk_info.rb --help' on the command line.
 #
 require 'date'
+require 'json'
 require 'optparse'
-require 'beanstalk-client'
+require 'beaneater'
 
 DEFAULT_COMMAND = 'statistics'
 
@@ -37,7 +38,12 @@ class BeanstalkCommander
   #
   def job_statistics(job_number)
     raise "Must specify a job number to get the statistics for" unless job_number
-    format_statistics(pool.open_connections.first.job_stats(job_number))
+    job = pool.jobs.find(job_number)
+    if job.nil?
+      puts "Unable to find job with id: #{job_number}"
+    else
+      format_statistics(job.stats)
+    end
   end
 
   #
@@ -45,7 +51,12 @@ class BeanstalkCommander
   #
   def tube_statistics(*args)
     puts "Statistics for Tube: #{@tube}"
-    format_statistics(pool.stats_tube(@tube))
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "Unable to find tube: #{@tube}"
+    else
+      format_statistics(tube.stats)
+    end
   end
 
   #
@@ -61,12 +72,8 @@ class BeanstalkCommander
   # Lists the tubes active on beanstalk
   #
   def list_tubes(*args)
-    tubes = pool.list_tubes
-    puts "Tubes in use"
-    puts "------------"
-    tubes.each_pair do | host, tubes |
-      puts host
-      tubes.each { | tube | puts " - #{tube}" }
+    pool.tubes.all.each do | tube |
+      puts " - #{tube.name}"
     end
   end
 
@@ -76,7 +83,7 @@ class BeanstalkCommander
   #
   def peek_job(job_number)
     raise "Must specify a job number to peek" unless job_number
-    job = pool.peek_job(job_number)
+    job = pool.jobs.find(job_number)
     format_job(job)
   end
 
@@ -85,42 +92,63 @@ class BeanstalkCommander
   #
   def delete(job_number)
     raise "Must specify a job number to delete" unless job_number
-    pool.open_connections.first.delete(job_number)
+    job = pool.jobs.find(job_number)
+    if job.nil?
+      puts "Unable to find job with ID: #{job_number}"
+    else
+      job.delete
+    end
   end
 
   #
   # Displays the most current job on the ready queue
   #
   def peek_ready(*args)
-    pool.use(@tube)
-    job = pool.peek_ready
-    format_job(job)
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      job = tube.peek(:ready)
+      format_job(job)
+    end
   end
 
   #
   # Kick any buried/delayed jobs in te queue
   #
   def kick(*args)
-    pool.use(@tube)
-    pool.open_connections.first.kick 1
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      tube.kick
+    end
   end
 
   #
   # Displays the most current job on the delayed queue
   #
   def peek_delayed(*args)
-    pool.use(@tube)
-    job = pool.peek_delayed
-    format_job(job)
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      job = tube.peek(:delayed)
+      format_job(job)
+    end
   end
 
   #
   # Displays the most current job on the buried queue
   #
   def peek_buried(*args)
-    pool.use(@tube)
-    job = pool.peek_buried
-    format_job(job)
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      job = tube.peek(:buried)
+      format_job(job)
+    end
   end
 
   #
@@ -128,10 +156,14 @@ class BeanstalkCommander
   #
   def put_job(job_body)
     raise "Must specify a job body to put" unless job_body
-    puts "Putting (#{job_body}) on tube: #{@tube}"
-    pool.use(@tube)
-    pool.put(job_body)
-    puts "Job was put"
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      puts "Putting (#{job_body}) on tube: #{@tube}"
+      tube.put(job_body)
+      puts "Job was put"
+    end
   end
 
   def kill_worker
@@ -141,15 +173,23 @@ class BeanstalkCommander
   def put_ayl_job(job_body)
     raise "Must specify a job body to put" unless job_body
     puts "Putting (#{job_body}) on tube: #{@tube}"
-    pool.use(@tube)
-    pool.put({:type => :ayl, :code => job_body}.to_yaml)
-    puts "Job was put"
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      tube.put({:type => :ayl, :code => job_body}.to_json)
+      puts "Job was put"
+    end
   end
 
   def put_sleep_job(*args)
     puts "Putting job on tube '#{@tube}' that will sleep for 20 seconds."
-    pool.use(@tube)
-    pool.put(SLEEP_COMMAND.to_yaml)
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      tube.put(SLEEP_COMMAND.to_yaml)
+    end
   end
 
   #
@@ -158,22 +198,31 @@ class BeanstalkCommander
   #
   def eat_job(*args)
     # Reserve the next job on the queue
-    pool.watch(@tube)
-    job = pool.reserve(10)
-    raise "No job to reserve" unless job
-    puts "Reserved job"
-    format_job(job)
-    job.delete
-    puts "Deleted job"
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      job = tube.peek(:ready)
+      if job.nil?
+        puts "No job to eat"
+      else
+        format_job(job)
+        job.delete
+        puts "Deleted job"
+      end
+    end
   end
 
-  def eat_all_jobs
-    pool.watch(@tube)
-    while (!(job = pool.reserve(0)).nil?)
-      puts "Reserved job"
-      format_job(job)
-      job.delete
-      puts "Deleted job"
+  def eat_all_jobs(state='ready')
+    tube = pool.tubes[@tube]
+    if tube.nil?
+      puts "No tube: #{@tube}"
+    else
+      while (!(job = tube.peek(state.to_sym)).nil?)
+        format_job(job)
+        job.delete
+        puts "Deleted job"
+      end
     end
   end
 
@@ -187,12 +236,16 @@ class BeanstalkCommander
   # It is fast and awesome.
   #
   def move_jobs(to_tube)
-    pool.watch(@tube)
-    pool.use(to_tube)
+    ttube = pool.tubes[to_tube]
+    if ttube.nil?
+      puts "No To Tube: #{to_tube}"
+      return
+    end
+    pool.tubes.watch!(@tube)
     while true
-      job = pool.reserve(0) 
+      job = pool.tubes.reserve(0) 
       if job
-        pool.put(job.body)
+        ttube.put(job.body)
         job.delete
       else
         break
@@ -206,7 +259,7 @@ class BeanstalkCommander
   # Returns the connected beanstalk pool
   #
   def pool
-    @pool ||= Beanstalk::Pool.new(["#{@host}:#{@port}"])
+    @pool ||= Beaneater.new("#{@host}:#{@port}")
   end
 
   #

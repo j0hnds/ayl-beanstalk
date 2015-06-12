@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'beanstalk-client'
 require 'active_record'
 require 'active_record/errors'
 
@@ -16,14 +15,17 @@ describe Ayl::Beanstalk::Worker do
 
       @mock_pool = double("Beanstalk::Pool")
       
-      expect(::Beanstalk::Pool).to receive(:new).with([ "localhost:11300" ]).and_return(@mock_pool)
+      expect(Beaneater).to receive(:new).with("localhost:11300").and_return(@mock_pool)
     end
 
     it "should loop until there are no more jobs from beanstalk" do
       mock_job1 = double("Beanstalk::Job")
       mock_job2 = double("Beanstalk::Job")
 
-      expect(@mock_pool).to receive(:reserve).and_return(mock_job1, mock_job2, nil)
+      mock_tubes = double("Tubes")
+      expect(mock_tubes).to receive(:reserve).and_return(mock_job1, mock_job2, nil)
+
+      expect(@mock_pool).to receive(:tubes).exactly(3).times.and_return(mock_tubes)
 
       index = 0
 
@@ -37,7 +39,9 @@ describe Ayl::Beanstalk::Worker do
     end
 
     it "should report any exception while waiting for a job" do
-      expect(@mock_pool).to receive(:reserve).and_raise('It blew')
+      mock_tubes = double("Tubes")
+      expect(mock_tubes).to receive(:reserve).and_raise('It blew')
+      expect(@mock_pool).to receive(:tubes).and_return(mock_tubes)
 
       mock_mailer = double("Mailer")
       expect(mock_mailer).to receive(:deliver_message).with(any_args())
@@ -136,8 +140,10 @@ describe Ayl::Beanstalk::Worker do
       @worker.stub_chain(:logger, :debug)
       Ayl::MessageOptions.default_queue_name = 'the queue name'
 
+      mock_tubes = double("Tubes")
+      expect(mock_tubes).to receive(:watch!).with('the queue name')
       @mock_pool = double("Beanstalk::Pool")
-      expect(@mock_pool).to receive(:watch).with('the queue name')
+      expect(@mock_pool).to receive(:tubes).and_return(mock_tubes)
       @worker.stub(:pool).and_return(@mock_pool)
     end
 
@@ -151,6 +157,7 @@ describe Ayl::Beanstalk::Worker do
       expect(@worker).to receive(:process_message).with(mock_message)
 
       expect(@worker).to receive(:reserve_job).and_yield(mock_job)
+
 
       @worker.process_messages
     end

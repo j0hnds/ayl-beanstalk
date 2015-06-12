@@ -20,7 +20,7 @@ module Ayl
         connected = true
         begin
           pool
-        rescue ::Beanstalk::NotConnected => ex
+        rescue ::Beaneater::NotConnected => ex
           logger.error "#{self.class.name} not connected error: #{ex}"
           connected = false
         end
@@ -30,10 +30,13 @@ module Ayl
       def submit(message)
         log_call(:submit) do
           begin
-            pool.use(message.options.queue_name)
+            tube = pool.tubes[message.options.queue_name]
             code = message.to_rrepr
             logger.info "#{self.class.name} submitting '#{code}' to tube '#{message.options.queue_name}'"
-            pool.yput(message.to_hash, message.options.priority, message.options.delay, message.options.time_to_run)
+            tube.put(message.to_hash.to_json, 
+                     pri: message.options.priority, 
+                     delay: message.options.delay, 
+                     ttr: message.options.time_to_run)
           rescue Exception => ex
             logger.error "Error submitting message to beanstalk: #{ex}"
             Ayl::Mailer.instance.deliver_message("Error submitting message to beanstalk", ex)

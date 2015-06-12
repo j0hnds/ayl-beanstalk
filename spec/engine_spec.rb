@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'beanstalk-client'
 require 'active_record'
 require 'active_record/errors'
 
@@ -27,13 +26,13 @@ describe Ayl::Beanstalk::Engine do
     it "should return true if it has a valid connection to beanstalk" do
       mock_pool = double("Beanstalk::Pool")
 
-      expect(::Beanstalk::Pool).to receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+      expect(Beaneater).to receive(:new).with("localhost:11300").and_return(mock_pool)
 
       expect(@engine.is_connected?).to be true
     end
 
     it "should return false if it does not have a valid connection to beanstalk" do
-      expect(::Beanstalk::Pool).to receive(:new).with([ "localhost:11300" ]).and_raise(::Beanstalk::NotConnected)
+      expect(Beaneater).to receive(:new).with("localhost:11300").and_raise(Beaneater::NotConnected)
 
       expect(@engine.is_connected?).to be false
     end
@@ -45,11 +44,14 @@ describe Ayl::Beanstalk::Engine do
       end
 
       it "should submit the specified message to beanstalk" do
+        mock_tube = double("Tube")
+        expect(mock_tube).to receive(:put).
+          with({ :type => :ayl, :failed_job_handler => 'delete', :code => "23.to_s(2)" }.to_json, {
+          pri: 512, delay: 0, ttr: 120})
         mock_pool = double("Beanstalk::Pool")
-        expect(mock_pool).to receive(:use).with("default")
-        expect(mock_pool).to receive(:yput).with( { :type => :ayl, :failed_job_handler => 'delete', :code => "23.to_s(2)" }, 512, 0, 120)
+        expect(mock_pool).to receive(:tubes).and_return({'default' => mock_tube})
 
-        expect(::Beanstalk::Pool).to receive(:new).with([ "localhost:11300" ]).and_return(mock_pool)
+        expect(Beaneater).to receive(:new).with("localhost:11300").and_return(mock_pool)
 
         @engine.submit(@msg)
       end

@@ -3,8 +3,8 @@
 This gem provides a reference implementation of a beanstalk Engine for the
 {ayl}[https://github.com/j0hnds/ayl] gem.
 
-If you want to use this technology in a Rails 3.* application you can do the 
-following in your config/environments/*.rb files:
+If you want to use this technology in a Rails 4.* application you can do the 
+following in your config/application.rb or config/environments/*.rb files:
 
     YourApp::Application.configure do
 
@@ -30,6 +30,29 @@ following in your config/environments/*.rb files:
       # left in the queue when the version of the software changes.
       # The default is 'default'.
       # Ayl::MessageOptions.default_queue_name = '1.2.3'
+
+      # Set the default failed job handler to 'decay'. The default is
+      # 'delete', another option is to 'bury'. So, 'delete' will delete
+      # a failed job. 'bury' will move the job to the 'buried' state
+      # requiring a 'kick' to place it back in the ready state. 'decay'
+      # means that if the job has been reserved less than 'failed_job_count'
+      # (see below), it will be placed back on the tube with a delay of
+      # 'failed_job_delay' (see below). This allows jobs to be retried
+      # with a delay. This is handy for the case where the jobs may be
+      # dependent on a third party that can have spotty availability 
+      # (like anything on the internet).
+      Ayl::MessageOptions.default_failed_job_handler = 'decay'
+
+      # Set the default failed job count to '3'. That is the default.
+      # If the failed job handler is 'decay', this means it retry the
+      # job until it has been reserved three times (initial try, then
+      # two failures).
+      Ayl::MessageOptions.default_failed_job_count = 4
+
+      # Set the default failed job delay to '30'. That is the default.
+      # If the failed job handler is 'decay', this means that there 
+      # will be a 30 second delay between each retry of the job.
+      Ayl::MessageOptions.default_failed_job_delay = 10
 
       # Set up the logger for Ayl
       Ayl::Logger.instance.logger = ::Rails.logger
@@ -77,6 +100,6 @@ The ayl_worker_control script can easily be invoked by an /etc/init.d script to 
 
 == Copyright
 
-Copyright (c) 2011 j0hnds@gmail.com. See LICENSE.txt for
+Copyright (c) 2011-2015 j0hnds@gmail.com. See LICENSE.txt for
 further details.
 

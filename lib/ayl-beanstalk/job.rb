@@ -5,7 +5,7 @@
 #
 # I promise that no methods overridden here; only new methods added.
 #
-class Beanstalk::Job
+class Beaneater::Job
   include Ayl::Logging
 
   #
@@ -13,7 +13,7 @@ class Beanstalk::Job
   # formatted, then nil is returned.
   #
   def ayl_message
-    @msg ||= Ayl::Message.from_hash(ybody)
+    @msg ||= Ayl::Message.from_hash(JSON.parse(body))
   rescue Ayl::UnrecoverableMessageException => ex
     logger.error "Error extracting message from beanstalk job: #{ex}"
     Ayl::Mailer.instance.deliver_message "Error extracting message from beanstalk job", ex
@@ -36,7 +36,9 @@ class Beanstalk::Job
   # process.
   #
   def ayl_decay(delay=nil)
-    decay(*[ delay ].compact)
+    options = {}
+    options[:delay] = delay unless delay.nil?
+    release(options)
   rescue Exception => ex
     logger.error "Error decaying job: #{ex}\n#{ex.backtrace.join("\n")}"
     Ayl::Mailer.instance.deliver_message("Error decaying job", ex)
