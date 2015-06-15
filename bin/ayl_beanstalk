@@ -188,7 +188,7 @@ class BeanstalkCommander
     if tube.nil?
       puts "No tube: #{@tube}"
     else
-      tube.put(SLEEP_COMMAND.to_yaml)
+      tube.put(SLEEP_COMMAND.to_json)
     end
   end
 
