@@ -27,8 +27,8 @@ class Beaneater::Job
   def ayl_delete
     delete
   rescue Exception => ex
-    logger.error "Error deleting job: #{ex}\n#{ex.backtrace.join("\n")}"
-    Ayl::Mailer.instance.deliver_message("Error deleting job", ex)
+    logger.error "Error deleting job (#{body}): #{ex}\n#{ex.backtrace.join("\n")}"
+    Ayl::Mailer.instance.deliver_message("Error deleting job (#{body})", ex)
   end
 
   #
